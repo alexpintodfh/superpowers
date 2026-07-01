@@ -42,14 +42,41 @@ def _para_text(p) -> str:
     return "".join(r.text for r in p.runs)
 
 
-def _set_para_text(p, text):
-    """Replace a paragraph's text, keeping the first run's formatting."""
-    if not p.runs:
-        p.add_run(text)
-        return
-    p.runs[0].text = text
-    for r in p.runs[1:]:
+def _set_para_text(p, text, bold_substr=None):
+    """Replace a paragraph's text, keeping the first run's font.
+
+    If bold_substr is given, that substring is emitted as its own bold run so the
+    draw amount shows bold in the cover (matches the rest of the document's style).
+    """
+    base = p.runs[0] if p.runs else None
+    base_name = base.font.name if base else None
+    base_size = base.font.size if base else None
+
+    def _new_run(seg, bold):
+        run = p.add_run(seg)
+        if base_name:
+            run.font.name = base_name
+        if base_size:
+            run.font.size = base_size
+        if bold:
+            run.bold = True
+        return run
+
+    for r in list(p.runs):
         r.text = ""
+    # remove the now-empty original runs so only our rebuilt runs remain
+    for r in list(p.runs):
+        r._element.getparent().remove(r._element)
+
+    if bold_substr and bold_substr in text:
+        before, after = text.split(bold_substr, 1)
+        if before:
+            _new_run(before, False)
+        _new_run(bold_substr, True)
+        if after:
+            _new_run(after, False)
+    else:
+        _new_run(text, False)
 
 
 def transform_text(text, old_number, new_number, sig, total):
@@ -85,22 +112,24 @@ def update_cover(template, invoices_json, out_path, old_number=None, total=None,
         total = round(sum(i.get("net_amount", i["gross_amount"] * (1 - i.get("retainage_rate", 0)))
                           for i in cfg["invoices"]), 2)
     sig = signature_date(today)
+    amount_str = f"${total:,.2f}"
 
-    doc = Document(template)
-    for p in doc.paragraphs:
+    def _apply(p):
         original = _para_text(p)
         updated = transform_text(original, old_number, new_number, sig, total)
         if updated != original:
-            _set_para_text(p, updated)
-    # tables, if any
+            # bold the draw amount when it appears in this paragraph
+            bold = amount_str if amount_str in updated else None
+            _set_para_text(p, updated, bold_substr=bold)
+
+    doc = Document(template)
+    for p in doc.paragraphs:
+        _apply(p)
     for tbl in doc.tables:
         for row in tbl.rows:
             for cell in row.cells:
                 for p in cell.paragraphs:
-                    original = _para_text(p)
-                    updated = transform_text(original, old_number, new_number, sig, total)
-                    if updated != original:
-                        _set_para_text(p, updated)
+                    _apply(p)
     doc.save(out_path)
     print(f"Cover sheet -> {out_path}  (#{new_number}, {sig.strftime('%-m/%-d/%Y')}, ${total:,.2f})")
 
