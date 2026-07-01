@@ -94,6 +94,28 @@ def latest_draw_sheet(wb):
     return best
 
 
+def is_exhibit_header(value) -> bool:
+    """True for an Exhibit D header cell, with or without quotes ('Exhibit D', 'EXHIBIT \"D\"')."""
+    return _norm(value).replace('"', "").strip() == "exhibit d"
+
+
+def find_embedded_exhibit_row(ws):
+    """Row of the 'Exhibit D' header embedded in a draw sheet, or None."""
+    for r in range(1, ws.max_row + 1):
+        if is_exhibit_header(ws.cell(row=r, column=2).value):
+            return r
+    return None
+
+
+def find_total_costs_row(ws, before_row=None):
+    """Row of the grand 'TOTAL COSTS' line (above the embedded Exhibit D)."""
+    limit = before_row or (find_embedded_exhibit_row(ws) or ws.max_row + 1)
+    for r in range(FIRST_COST_ROW, limit):
+        if _norm(ws.cell(row=r, column=2).value).startswith("total"):
+            return r
+    return None
+
+
 def build_code_map(ws) -> dict:
     """Map major code -> {'main': row, 'no_ret': row_or_None}.
 

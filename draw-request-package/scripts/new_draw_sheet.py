@@ -68,13 +68,8 @@ def _refresh_row_formulas(ws, cols):
 
 
 def _refresh_total_row(ws, cols):
-    """Rewrite the TOTAL COSTS row sums for the money columns after the shift."""
-    # find the TOTAL COSTS row
-    total_row = None
-    for r in range(dl.LAST_COST_ROW + 1, ws.max_row + 1):
-        if dl._norm(ws.cell(row=r, column=2).value) == "total costs":
-            total_row = r
-            break
+    """Rewrite the TOTAL COSTS row sums for the money columns (sum data rows only)."""
+    total_row = dl.find_total_costs_row(ws)
     if total_row is None:
         return
     money_cols = [dl.CURRENT_BUDGET_COL]                  # F (current budget)
@@ -82,15 +77,24 @@ def _refresh_total_row(ws, cols):
     money_cols += [cols["prev"], cols["cp"], cols["cplr"], cols["tcd"], cols["rtd"], cols["bal"]]
     for c in money_cols:
         L = col_letter(c)
-        ws.cell(row=total_row, column=c).value = f"=SUM({L}5:{L}50)"
+        ws.cell(row=total_row, column=c).value = f"=SUM({L}5:{L}{total_row - 1})"
+
+
+def _copy_column_style(ws, src_col, dst_col, rows):
+    """Copy full cell style (font, fill, border, alignment, number format) column to column."""
+    import copy as _copy
+    for r in rows:
+        s = ws.cell(row=r, column=src_col)
+        d = ws.cell(row=r, column=dst_col)
+        d.font = _copy.copy(s.font)
+        d.fill = _copy.copy(s.fill)
+        d.border = _copy.copy(s.border)
+        d.alignment = _copy.copy(s.alignment)
+        d.number_format = s.number_format
 
 
 def _reset_embedded_exhibit(ws, new_number):
-    head = None
-    for r in range(1, ws.max_row + 1):
-        if dl._norm(ws.cell(row=r, column=2).value) == 'exhibit "d"':
-            head = r
-            break
+    head = dl.find_embedded_exhibit_row(ws)
     if head is None:
         return
     ws.cell(row=head + 1, column=6, value=new_number)  # Draw Request # value (col F)
@@ -107,36 +111,60 @@ def create_next_draw(workbook, out=None, new_number=None):
     src, n = dl.latest_draw_sheet(wb)
     if new_number is None:
         new_number = n + 1
-    naming = dl.draw_sheet_naming(wb)            # match this workbook's style ('Draw' vs 'Draw Request')
-    new_title = f"{naming} {new_number}"
+    # name the new sheet like the one we're copying (e.g. 'DRAW 13' -> 'DRAW 14')
+    prefix = re.sub(r"\s*#?\s*\d+\s*$", "", src.title).strip() or "Draw Request"
+    new_title = f"{prefix} {new_number}"
     if any(dl.draw_sheet_number(s) == new_number for s in wb.sheetnames):
         sys.exit(f"A draw sheet for #{new_number} already exists.")
 
     ws = wb.copy_worksheet(src)
     ws.title = new_title
+    # keep draw sheets in order: place the new one right after its source (before Exhibit D)
+    src_idx = wb._sheets.index(src)
+    wb._sheets.remove(ws)
+    wb._sheets.insert(src_idx + 1, ws)
 
     cols = dl.find_columns(ws)
     prev_col = cols["prev"]
+    candidate = prev_col - 1          # column just left of TOTAL PREVIOUSLY DRAWN
 
-    # Insert the frozen-history column just left of TOTAL PREVIOUSLY DRAWN.
-    ws.insert_cols(prev_col, 1)
-    _shift_merges(ws, prev_col)              # openpyxl moves values but not merges
-    cols = dl.find_columns(ws)               # re-locate after the shift
-    history_col = dl.last_draw_col(cols)     # == the inserted column
+    # Two tracker conventions:
+    #  * a spare placeholder column already sits before TOTAL PREVIOUSLY DRAWN
+    #    (header like 'Draw x', empty data) -> fill it in place, no insert;
+    #  * otherwise every draw adds a new history column -> insert one.
+    cand_hdr = dl._norm(ws.cell(row=dl.HEADER_ROW, column=candidate).value)
+    cand_empty = all(ws.cell(row=r, column=candidate).value in (None, 0, "")
+                     for r in range(dl.FIRST_COST_ROW, dl.LAST_COST_ROW + 1))
+    is_placeholder = ("draw x" in cand_hdr or cand_hdr in ("", "draw")) or cand_empty
 
-    # Freeze the finished draw's Current Period (gross) into the new history column.
+    if is_placeholder:
+        history_col = candidate
+    else:
+        ws.insert_cols(prev_col, 1)
+        _shift_merges(ws, prev_col)          # openpyxl moves values but not merges
+        cols = dl.find_columns(ws)           # re-locate after the shift
+        history_col = dl.last_draw_col(cols)
+
+    neighbor = history_col - 1               # the previous real draw column (style source)
+
+    # Freeze the finished draw's Current Period (gross) into the history column,
+    # matching the previous draw column's formatting exactly.
     ws.cell(row=dl.HEADER_ROW, column=history_col, value=f"Draw {n}")
-    src_fmt = ws.cell(row=dl.FIRST_COST_ROW, column=dl.FIRST_DRAW_COL).number_format
+    _copy_column_style(ws, neighbor, history_col, range(dl.FIRST_COST_ROW, dl.LAST_COST_ROW + 1))
     for r in range(dl.FIRST_COST_ROW, dl.LAST_COST_ROW + 1):
         frozen = ws.cell(row=r, column=cols["cp"]).value
-        ws.cell(row=r, column=history_col, value=frozen if isinstance(frozen, (int, float)) else 0)
-        ws.cell(row=r, column=history_col).number_format = src_fmt
-        # reset the new input columns
+        ws.cell(row=r, column=history_col).value = frozen if isinstance(frozen, (int, float)) else 0
         ws.cell(row=r, column=cols["cp"]).value = 0
         ws.cell(row=r, column=cols["ret"]).value = 0
 
     _refresh_row_formulas(ws, cols)
     _refresh_total_row(ws, cols)
+    # give the frozen column its own TOTAL COSTS sum, matching the neighbor's style
+    total_row = dl.find_total_costs_row(ws)
+    if total_row is not None:
+        _copy_column_style(ws, neighbor, history_col, [total_row])
+        ws.cell(row=total_row, column=history_col).value = (
+            f"=SUM({col_letter(history_col)}5:{col_letter(history_col)}{total_row - 1})")
     _reset_embedded_exhibit(ws, new_number)
     _update_title_date(ws, new_number)
 

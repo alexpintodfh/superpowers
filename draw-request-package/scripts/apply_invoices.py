@@ -76,13 +76,6 @@ def _apply_to_rows(ws, cols, code_map, invoices, warnings):
                 ws.cell(row=row, column=cols[role]).value = formula
 
 
-def _find_embedded_exhibit(ws):
-    for r in range(1, ws.max_row + 1):
-        if dl._norm(ws.cell(row=r, column=2).value) == 'exhibit "d"':
-            return r
-    return None
-
-
 def _write_exhibit_rows(ws, start_row, cols_map, invoices, draw_number):
     """Shared writer for both the standalone sheet and the embedded block.
 
@@ -116,16 +109,53 @@ def _write_exhibit_rows(ws, start_row, cols_map, invoices, draw_number):
 
 
 def rebuild_standalone_exhibit(wb, invoices, draw_number):
+    """Lay out the standalone Exhibit D sheet in the standard format every time:
+
+      row 1  EXHIBIT D            (merged A1:E1, bold, centered)
+      row 3  Draw Request #  N    (label D3, value E3)
+      row 4  Invoices | Major Code | INVOICES SUBMITTED THIS REQUEST | Amount | Lien Release
+      row 5+ one line per invoice, then a bold TOTAL row.
+    """
     name = next((n for n in wb.sheetnames if dl._norm(n) == "exhibit d"), None)
     if name is None:
         return
     ws = wb[name]
-    ws["E2"] = draw_number
-    # clear old invoice + total rows (row 5 downward, cols A..E)
-    for r in range(5, ws.max_row + 2):
+    center = Alignment(horizontal="center", vertical="center")
+    bold = Font(bold=True)
+    thin = Side(style="thin", color="000000")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    # drop merges in the A..E region so cells are writable, then clear
+    for ref in [str(m) for m in ws.merged_cells.ranges]:
+        from openpyxl.worksheet.cell_range import CellRange
+        if CellRange(ref).min_col <= 5:
+            ws.unmerge_cells(ref)
+    for r in range(1, ws.max_row + 2):
         for c in range(1, 6):
-            ws.cell(row=r, column=c).value = None
-            ws.cell(row=r, column=c).border = Border()
+            cell = ws.cell(row=r, column=c)
+            cell.value = None
+            cell.border = Border()
+
+    ws.merge_cells("A1:E1")
+    ws["A1"] = 'Exhibit D'
+    ws["A1"].font = bold
+    ws["A1"].alignment = center
+
+    ws["D3"] = "Draw Request #"
+    ws["D3"].font = bold
+    e3 = ws["E3"]
+    e3.value = draw_number
+    e3.font = bold
+    e3.alignment = center
+
+    headers = {1: "Invoices", 2: "Major Code", 3: "INVOICES SUBMITTED THIS REQUEST",
+               4: "Amount", 5: "Lien Release"}
+    for c, text in headers.items():
+        cell = ws.cell(row=4, column=c, value=text)
+        cell.font = bold
+        cell.border = border
+        cell.alignment = center
+
     _write_exhibit_rows(
         ws, 5,
         {"idx": 1, "code": 2, "desc": 3, "amount": 4, "lien": 5},
@@ -133,7 +163,7 @@ def rebuild_standalone_exhibit(wb, invoices, draw_number):
 
 
 def rebuild_embedded_exhibit(ws, invoices, draw_number):
-    head = _find_embedded_exhibit(ws)
+    head = dl.find_embedded_exhibit_row(ws)
     if head is None:
         return
     # header block: B(exhibit) / row+1 Invoices,MajorCode,Draw#,N / row+3 col headers
