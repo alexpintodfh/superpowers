@@ -73,14 +73,13 @@ def draw_exhibit_d(doc, cfg, invoices, total):
     title = 'EXHIBIT "D"'
     w = fitz.get_text_length(title, fontname=FONT_B, fontsize=12)
     page.insert_text((cx - w / 2, 70), title, fontname=FONT_B, fontsize=12)
-    page.insert_text((MARGIN, 95), "Invoices   Major Code", fontname=FONT_B, fontsize=10)
     page.insert_text((PAGE.width - MARGIN - 170, 95),
                      f"Draw Request #   {cfg['draw_number']}", fontname=FONT_B, fontsize=10)
 
     # column x-edges
     x0 = MARGIN
-    cols = [x0, x0 + 50, x0 + 118, x0 + 340, x0 + 438, PAGE.width - MARGIN]
-    headers = ["", "", "INVOICES SUBMITTED THIS REQUEST", "Amount", "Lien Release"]
+    cols = [x0, x0 + 62, x0 + 130, x0 + 344, x0 + 438, PAGE.width - MARGIN]
+    headers = ["Invoices", "Major Code", "INVOICES SUBMITTED THIS REQUEST", "Amount", "Lien Release"]
     top = 115
     rowh = 22
     n = len(invoices)

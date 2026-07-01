@@ -26,7 +26,7 @@
           "retainage_rate": {"type": "number", "default": 0.0, "description": "e.g. 0.1 when the invoice shows 'Less 10% Retainage'; 0 otherwise"},
           "net_amount": {"type": "number", "description": "Optional; computed as gross*(1-rate) if omitted. This is what shows on Exhibit D."},
           "is_retention_release": {"type": "boolean", "default": false, "description": "true for end-of-development retention-release invoices"},
-          "lien_release": {"type": "string", "default": "N/A"},
+          "lien_release": {"type": "string", "default": "N/A", "description": "'Yes' if any page of the invoice PDF is a Conditional Waiver and Release of Lien (progress or final payment), else 'N/A'"},
           "source_pdf": {"type": "string", "description": "Filename of the invoice PDF inside the Invoices/ folder"}
         }
       }

@@ -50,6 +50,10 @@ Run these from the skill's `scripts/` directory. Requires `pymupdf`, `openpyxl`,
      else `0`. (`net_amount` is then gross×(1−rate); it is what shows on Exhibit D.)
    - `is_retention_release` — `true` only for an end-of-development retention
      **release** invoice (often labeled `RET`). These carry `retainage_rate` 0.
+   - `lien_release` — **check every page of the invoice PDF.** If any page is a
+     "Conditional Waiver and Release of Lien" (upon progress OR final payment),
+     set `"Yes"`; otherwise `"N/A"`. The waiver is usually the LAST page of a
+     multi-page contractor packet — do not decide from the first page alone.
    - `source_pdf` — the invoice's filename in `Invoices/`.
    Set `draw_number` and the cover fields (`application_date`, `owner`, `signer_name`, …).
 
