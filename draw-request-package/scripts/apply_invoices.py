@@ -167,10 +167,9 @@ def main():
     wb = openpyxl.load_workbook(args.workbook)
 
     if args.draw:
-        target = f"Draw Request {args.draw}"
-        name = next((n for n in wb.sheetnames if dl._norm(n) == dl._norm(target)), None)
+        name = next((n for n in wb.sheetnames if dl.draw_sheet_number(n) == args.draw), None)
         if name is None:
-            sys.exit(f"Sheet '{target}' not found. Run new_draw_sheet.py first.")
+            sys.exit(f"No draw sheet for #{args.draw} found. Run new_draw_sheet.py first.")
         ws, draw_number = wb[name], args.draw
     else:
         ws, draw_number = dl.latest_draw_sheet(wb)

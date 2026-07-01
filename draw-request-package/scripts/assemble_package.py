@@ -121,12 +121,65 @@ def draw_exhibit_d(doc, cfg, invoices, total):
         page.draw_line((cxx, top), (cxx, bottom))
 
 
+def draw_cover_from_docx(doc, docx_path):
+    """Render the actual cover .docx text into the package's first page(s).
+
+    Keeps the package cover faithful to whatever community-specific cover was
+    generated, without needing LibreOffice to convert docx -> PDF.
+    """
+    from docx import Document
+
+    def _ascii(s):
+        # the base-14 PDF font lacks curly quotes / dashes; map to ASCII so they
+        # don't render as stray dots
+        return (s.replace("‘", "'").replace("’", "'")
+                 .replace("“", '"').replace("”", '"')
+                 .replace("–", "-").replace("—", "-")
+                 .replace("…", "...").replace("\xa0", " "))
+
+    paras = [_ascii("".join(r.text for r in p.runs)).rstrip()
+             for p in Document(docx_path).paragraphs]
+
+    fontsize, leading = 11, 15
+    left, right = MARGIN, PAGE.width - MARGIN
+    top, bottom = 80, PAGE.height - 60
+    width = right - left
+
+    def wrap(par):
+        if not par.strip():
+            return [""]
+        lines, cur = [], ""
+        for word in par.split():
+            trial = (cur + " " + word).strip()
+            if fitz.get_text_length(trial, fontname=FONT, fontsize=fontsize) <= width:
+                cur = trial
+            else:
+                if cur:
+                    lines.append(cur)
+                cur = word
+        if cur:
+            lines.append(cur)
+        return lines
+
+    page = doc.new_page(width=PAGE.width, height=PAGE.height)
+    y = top
+    for par in paras:
+        for line in wrap(par):
+            if y > bottom:
+                page = doc.new_page(width=PAGE.width, height=PAGE.height)
+                y = top
+            if line:
+                page.insert_text((left, y), line, fontname=FONT, fontsize=fontsize)
+            y += leading
+
+
 def main():
     ap = argparse.ArgumentParser(description="Assemble cover + Exhibit D + invoice PDFs into one package PDF.")
     ap.add_argument("invoices_json")
     ap.add_argument("invoices_dir", help="Folder holding the invoice PDFs referenced by source_pdf")
     ap.add_argument("out_pdf")
     ap.add_argument("--total", type=float)
+    ap.add_argument("--cover-docx", help="Render this cover .docx as the package cover page(s)")
     args = ap.parse_args()
 
     with open(args.invoices_json) as fh:
@@ -140,7 +193,10 @@ def main():
     total = args.total if args.total is not None else round(sum(i["net_amount"] for i in invoices), 2)
 
     doc = fitz.open()
-    draw_cover(doc, cfg, total)
+    if args.cover_docx:
+        draw_cover_from_docx(doc, args.cover_docx)
+    else:
+        draw_cover(doc, cfg, total)
     draw_exhibit_d(doc, cfg, invoices, total)
 
     inv_dir = Path(args.invoices_dir)

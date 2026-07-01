@@ -63,17 +63,34 @@ def last_draw_col(cols: dict) -> int:
     return cols["prev"] - 1
 
 
+# A draw sheet may be named "Draw Request 17", "Draw 13", "Draw Request #17", etc.
+DRAW_SHEET_RE = re.compile(r"draw(?:\s*request)?\s*#?\s*(\d+)")
+
+
+def draw_sheet_number(name):
+    """Return the draw number for a sheet name, or None if it isn't a draw sheet."""
+    m = DRAW_SHEET_RE.fullmatch(_norm(name))
+    return int(m.group(1)) if m else None
+
+
+def draw_sheet_naming(wb):
+    """Infer the workbook's draw-sheet naming so new sheets match ('Draw' vs 'Draw Request')."""
+    for name in wb.sheetnames:
+        if draw_sheet_number(name) is not None:
+            prefix = re.sub(r"\s*#?\s*\d+\s*$", "", name).strip()
+            return prefix or "Draw Request"
+    return "Draw Request"
+
+
 def latest_draw_sheet(wb):
-    """Return (sheet, number) for the highest-numbered 'Draw Request N' sheet."""
+    """Return (sheet, number) for the highest-numbered draw sheet, any naming style."""
     best = None
     for name in wb.sheetnames:
-        m = re.fullmatch(r"draw request\s*(\d+)", _norm(name))
-        if m:
-            n = int(m.group(1))
-            if best is None or n > best[1]:
-                best = (wb[name], n)
+        n = draw_sheet_number(name)
+        if n is not None and (best is None or n > best[1]):
+            best = (wb[name], n)
     if best is None:
-        raise ValueError("No 'Draw Request N' sheet found in workbook")
+        raise ValueError("No draw sheet (e.g. 'Draw Request 17' or 'Draw 13') found in workbook")
     return best
 
 

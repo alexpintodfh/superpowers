@@ -36,6 +36,8 @@ def main():
     ap.add_argument("invoices_json")
     ap.add_argument("invoices_dir", help="Folder of invoice PDFs")
     ap.add_argument("--out-dir", default=".", help="Where to write cover + package")
+    ap.add_argument("--cover-template", help="Prior draw's cover .docx to update (preserves the "
+                    "community's format). If omitted, a generic cover is generated.")
     args = ap.parse_args()
 
     data = dl.load_invoices(args.invoices_json)
@@ -43,12 +45,12 @@ def main():
 
     # Create the sheet if missing.
     wb = openpyxl.load_workbook(args.workbook)
-    have = any(dl._norm(s) == dl._norm(f"draw request {draw_number}") for s in wb.sheetnames)
+    have = any(dl.draw_sheet_number(s) == draw_number for s in wb.sheetnames)
     _, latest = dl.latest_draw_sheet(wb)
     if not have:
         if draw_number != latest + 1:
             print(f"NOTE: latest sheet is Draw {latest}; requested Draw {draw_number}.")
-        _run("new_draw_sheet.py", args.workbook)
+        _run("new_draw_sheet.py", args.workbook, "--number", draw_number)
 
     _run("apply_invoices.py", args.workbook, args.invoices_json, "--draw", draw_number)
 
@@ -56,8 +58,11 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     cover = out / f"Cover_Sheet_{draw_number}.docx"
     package = out / f"Draw_Request_{draw_number}_package.pdf"
-    _run("build_cover.py", args.invoices_json, cover)
-    _run("assemble_package.py", args.invoices_json, args.invoices_dir, package)
+    if args.cover_template:
+        _run("update_cover.py", args.cover_template, args.invoices_json, cover)
+    else:
+        _run("build_cover.py", args.invoices_json, cover)
+    _run("assemble_package.py", args.invoices_json, args.invoices_dir, package, "--cover-docx", cover)
 
     print("\nDone.")
     print(f"  Tracker updated : {args.workbook}")
