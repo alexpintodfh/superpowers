@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Draw invoices",
+  "type": "object",
+  "required": ["draw_number", "invoices"],
+  "properties": {
+    "draw_number": {"type": "integer", "description": "Draw / Application number, e.g. 18"},
+    "application_date": {"type": "string", "description": "ISO date the cover is executed, e.g. 2026-07-10"},
+    "project_name": {"type": "string"},
+    "owner": {"type": "string", "description": "Land banker / Owner entity, e.g. DFC Anabelle LLC"},
+    "project_manager": {"type": "string", "default": "Dream Finders Homes, LLC"},
+    "agreement_date": {"type": "string", "description": "Free text, e.g. 'the 27th day of September 2024'"},
+    "signer_name": {"type": "string"},
+    "signer_title": {"type": "string"},
+    "invoices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["vendor", "invoice_number", "major_code", "gross_amount", "source_pdf"],
+        "properties": {
+          "vendor": {"type": "string", "description": "Vendor name as it should read on Exhibit D"},
+          "invoice_number": {"type": "string", "description": "Invoice # or label (use 'RET' for retention releases)"},
+          "exhibit_line": {"type": "string", "description": "Optional override; defaults to 'vendor - invoice_number'"},
+          "major_code": {"type": "string", "description": "From the handwritten CHECK ROUTING stamp, e.g. '1018'"},
+          "gross_amount": {"type": "number", "description": "Current gross billing BEFORE retainage"},
+          "retainage_rate": {"type": "number", "default": 0.0, "description": "e.g. 0.1 when the invoice shows 'Less 10% Retainage'; 0 otherwise"},
+          "net_amount": {"type": "number", "description": "Optional; computed as gross*(1-rate) if omitted. This is what shows on Exhibit D."},
+          "is_retention_release": {"type": "boolean", "default": false, "description": "true for end-of-development retention-release invoices"},
+          "lien_release": {"type": "string", "default": "N/A"},
+          "source_pdf": {"type": "string", "description": "Filename of the invoice PDF inside the Invoices/ folder"}
+        }
+      }
+    }
+  }
+}
