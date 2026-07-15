@@ -5,6 +5,15 @@
 
 ---
 
+## 0. Confirmed decisions (26Q3)
+
+1. **Trust model:** tool writes all edits into a **copy** of the Q3 template (`keep_vba=True`); LandDev opens it in Excel, recalcs, confirms totals match the audit, then saves to B:. Source is never touched.
+2. **Runtime:** **portable Python run locally on Windows** (native B:/OneDrive/Excel access). This session builds and unit-tests the code; the operator runs it on real files.
+3. **Starting scope:** build + golden-master validate on **Anabelle Island, Bartram Commons, Ellis Cove**, then expand to all 30+.
+4. **Carry-cost formulas are read from the real Q2 `.xlsm` and re-templated to Q3 columns — not transcribed from `SKILL.md`.** (The doc's Anabelle Closing-Costs formula has an unbalanced paren, and several rates are still open VP decisions; the live template is ground truth.)
+
+---
+
 ## 1. Goal
 
 Each quarter, process 30+ Jacksonville community lot-basis workbooks (`.xlsm`) so that
@@ -144,9 +153,16 @@ Each phase = TDD + golden-master against known-good + review + verification befo
 
 ---
 
-## 7. Open decisions (need input before Phase 0/1)
+## 7. What's needed to start Phase 1 (gating dependency)
 
-1. **Trust model:** tool writes formulas into a copy for human review in Excel (recommended), vs. tool only emits a change-list a human applies by hand.
-2. **Where it runs:** portable Python run locally on Windows (natural for B: drive + Excel recalc) vs. upload files into this environment per community.
-3. **Starting scope:** build + validate on the 3 documented communities first (recommended), then expand — vs. attempt all 30+ now.
-4. **JCS format:** what a JCS export actually looks like (columns, file type) so `jcs.py` can parse it reliably.
+Decisions 1–3 are resolved (see §0). Remaining blocker: **real sample files**, because the
+engine reads live formulas and structure rather than the doc.
+
+Please provide, for **Anabelle Island, Bartram Commons, and Ellis Cove**:
+1. **Q2 template** `.xlsm` (formula reference — the ground truth for carry-cost formulas).
+2. **Q3 working template** `.xlsm` (what we edit a copy of).
+3. **JCS export** for each (whatever the LandDev web app produces — file type + columns), so `jcs.py` can parse `{cost_code: adjusted_total}` for the 99 and 11 lines.
+
+De-identify/redact if needed — I need the **structure and formulas**, not confidential totals.
+The rest of the build (SSC tail-fix, 99-line reconciliation math, contingency formula
+strings, CLI scaffold) is file-independent and can start immediately.
