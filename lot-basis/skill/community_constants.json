@@ -1,0 +1,116 @@
+{
+  "communities": {
+    "11ANAISL": {
+      "name": "Anabelle Island",
+      "county": "Clay",
+      "district": "Unincorporated (Lake Asbury MSBD)",
+      "lot_types": ["40ft", "55ft"],
+      "lot_price_row": {"D165": 117640.08},
+      "closings_rows": [44, 45],
+      "takedown_rows": [144, 145],
+      "carry_costs": {
+        "closing_costs_rate": 0.0075,
+        "millage_per_1000": 15.2187,
+        "assessed_pct": 0.75,
+        "cdd_40ft_annual": 1221.14,
+        "cdd_55ft_annual": 1690.83,
+        "hoa_annual": 386.11
+      },
+      "cccx_placement": "col_I_stack",
+      "cccx_note": "Incomplete schedule — 319/513 lots scheduled as of Q3 26",
+      "schedule_complete": false,
+      "lots_scheduled": 319,
+      "lots_total": 513
+    },
+    "11BARTCM": {
+      "name": "Bartram Commons",
+      "county": "Duval",
+      "district": "USD1",
+      "lot_types": ["TH"],
+      "lot_price_row": {"D165": 110330.99},
+      "closings_rows": [44],
+      "takedown_rows": [144],
+      "carry_costs": {
+        "closing_costs_rate": 0.0075,
+        "millage_per_1000": 17.7412,
+        "millage_note": "Template used 14.0; updated to actual USD1 rate per VP review",
+        "assessed_pct": 0.75,
+        "cdd": null,
+        "hoa_monthly": 125,
+        "hoa_note": "Template constant $125/mo; master list says $173 — VP decision pending"
+      },
+      "cccx_placement": "MAX_formula_col_L",
+      "schedule_complete": true,
+      "lots_scheduled": 158,
+      "lots_total": 158
+    },
+    "11ELLCOV": {
+      "name": "Ellis Cove",
+      "county": "Duval",
+      "district": "USD1",
+      "lot_types": ["TH"],
+      "lot_price_row": {"D165": 119876.28},
+      "closings_rows": [44],
+      "takedown_rows": [144],
+      "carry_costs": {
+        "closing_costs_rate": 0.01,
+        "closing_costs_note": "1% — community-specific, differs from standard 0.75%",
+        "millage_per_1000": 17.865,
+        "millage_note": "Template constant from Q2; USD1 actual = 17.7412; template takes precedence",
+        "assessed_pct": 0.75,
+        "cdd": null,
+        "hoa_monthly": 80,
+        "hoa_note": "Template constant $80/mo; master list says $175 — VP decision pending"
+      },
+      "cccx_placement": "MAX_formula_col_L",
+      "schedule_complete": true,
+      "lots_scheduled": 150,
+      "lots_total": 150,
+      "preexisting_errors": "Rows 162-164 have #NAME? errors from cross-sheet refs ('11ELLCOV'!J8) — pre-existing, not our edits"
+    }
+  },
+  "millage_rates": {
+    "Clay_Unincorporated": {
+      "district": "Lake Asbury MSBD",
+      "rate_per_dollar": 0.0152523,
+      "per_1000": 15.2523,
+      "communities": ["Anabelle Island", "Amberly", "Jennings Farm"]
+    },
+    "Clay_Challenger": {
+      "district": "Challenger Center MSTU",
+      "rate_per_dollar": 0.0182523,
+      "per_1000": 18.2523,
+      "communities": ["Challenger Center"]
+    },
+    "Duval_USD1": {
+      "district": "USD1",
+      "rate_per_dollar": 0.0177412,
+      "per_1000": 17.7412,
+      "communities": ["Bartram Commons", "Ellis Cove", "Owens Rd", "Pinewalk", "Bellbrooke", "Dunns Crossing 4", "Everlake", "Everrange", "McLaurin Rd"]
+    },
+    "StJohns_300": {
+      "district": "District 300",
+      "rate_per_dollar": 0.0125415,
+      "per_1000": 12.5415,
+      "communities": ["Beacon Lake", "Rev at Trailmark", "Shearwater", "Silverleaf"]
+    },
+    "StJohns_450": {
+      "district": "District 450",
+      "rate_per_dollar": 0.0126013,
+      "per_1000": 12.6013,
+      "communities": ["Cordova Palms"]
+    },
+    "Flagler_County": {
+      "district": "Flagler County",
+      "rate_per_dollar": 0.0183217,
+      "per_1000": 18.3217,
+      "communities": ["Reveire at Palm Coast", "Spring Lake"]
+    }
+  },
+  "vp_open_decisions": [
+    "Bartram Commons HOA: template $125/mo vs master list $173/mo",
+    "Bartram Commons RE Tax millage: template 0.014 vs USD1 actual 0.0177412",
+    "Ellis Cove HOA: template $80/mo vs master list $175/mo",
+    "Ellis Cove closing cost rate: 1% confirmed community-specific"
+  ]
+}
